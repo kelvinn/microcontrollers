@@ -1,26 +1,44 @@
 import time
-from machine import Pin, ADC
-from dht import DHT22
-import onewire, ds18x20
+from machine import Pin
+from machine import ADC
+from dht import DHT11
+import onewire
+import ds18x20
 
-def get_dht11_temperature():
-    data = DHT22(Pin(16))
+
+def temp_and_hum():
+    data = DHT11(Pin(16))
     data.measure()
-    temp = data.temperature()
-    hum = data.humidity()
-    print('Temp: {}oC'.format(temp))
-    print('Hum:  {}%'.format(hum))
+    temp = str(data.temperature())
+    hum = str(data.humidity())
+    print("dht11: %s, %s" % (temp, hum))
+    return temp, hum
 
-def get_onewire_temperature():
-    dat = Pin(25)
+
+def temperature():
+    dat = Pin(15)
     ds = ds18x20.DS18X20(onewire.OneWire(dat))
     sensors = ds.scan()
-    print('found devices:', sensors)
     ds.convert_temp()
     time.sleep_ms(750)
-    print(ds.read_temp(sensors[0]))
+    reading = str(ds.read_temp(sensors[0]))
+    print("onewire: %s" % reading)
+    return reading
 
-def get_light():
+
+def light():
+    pin = Pin(33)
+    adc = ADC(pin)
+    adc.atten(ADC.ATTN_11DB)
+    reading = str(adc.read())
+    print("light: %s" % reading)
+    return reading
+
+
+def aqi():
     pin = Pin(34)
-    light = ADC(pin).read()
-    print(light)
+    adc = ADC(pin)
+    adc.atten(ADC.ATTN_11DB)
+    reading = str(adc.read())
+    print("aqi: %s" % reading)
+    return reading
