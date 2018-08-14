@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from umqtt.robust import MQTTClient
+from umqtt.simple import MQTTClient
 import network
 import utime as time
 import ubinascii
-from machine import Pin, unique_id
+from machine import unique_id
 import sensors
 from config import config
 
@@ -18,9 +18,6 @@ mcu_name = ubinascii.hexlify(mcu_id).decode('utf-8')
 
 client = MQTTClient(mcu_name, mqtt_host, user=mqtt_username, password=mqtt_password)
 client.connect()
-
-
-
 
 
 def checkwifi():
@@ -44,14 +41,11 @@ def main():
         checkwifi()
         is_mqtt_connected()
         try:
-            client.publish(b"home/kitchen/light", sensors.light())
-            client.publish(b"home/kitchen/onewire", sensors.temperature())
-            client.publish(b"home/kitchen/aqi", sensors.aqi())
             temperature, humidity = sensors.temp_and_hum()
-            client.publish(b"home/kitchen/temperature", temperature)
-            client.publish(b"home/kitchen/humidity", humidity)
+            client.publish(b"home/bedroom/temperature", temperature)
+            client.publish(b"home/bedroom/humidity", humidity)
         except:
-            print("Caught some exception...")
+            print("Read sensors, but caught some exception...")
         time.sleep_ms(10000)
 
 

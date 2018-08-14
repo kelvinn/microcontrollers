@@ -20,9 +20,6 @@ client = MQTTClient(mcu_name, mqtt_host, user=mqtt_username, password=mqtt_passw
 client.connect()
 
 
-
-
-
 def checkwifi():
     while not sta_if.isconnected():
         time.sleep_ms(500)
@@ -36,20 +33,16 @@ def is_mqtt_connected():
     except OSError:
         client.connect()
         time.sleep(5)
-        print("Couldn't contact MQTT...")
 
 
 def main():
+    sensors.setup_push_button()
     while True:
         checkwifi()
-        is_mqtt_connected()
         try:
-            client.publish(b"home/kitchen/light", sensors.light())
-            client.publish(b"home/kitchen/onewire", sensors.temperature())
-            client.publish(b"home/kitchen/aqi", sensors.aqi())
-            temperature, humidity = sensors.temp_and_hum()
-            client.publish(b"home/kitchen/temperature", temperature)
-            client.publish(b"home/kitchen/humidity", humidity)
+            is_mqtt_connected()
+            #client.publish(b"home/bedroom/propane", sensors.propane())
+            #client.publish(b"home/bedroom/methane", sensors.methane())
         except:
             print("Caught some exception...")
         time.sleep_ms(10000)
