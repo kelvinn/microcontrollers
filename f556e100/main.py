@@ -41,6 +41,7 @@ def main():
         checkwifi()
         is_mqtt_connected()
         try:
+            print("Sensors go here")
             temperature, humidity = sensors.temp_and_hum()
             client.publish(b"home/bedroom/temperature", temperature)
             client.publish(b"home/bedroom/humidity", humidity)
@@ -50,4 +51,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()

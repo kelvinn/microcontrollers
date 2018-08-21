@@ -19,7 +19,6 @@ mcu_name = ubinascii.hexlify(mcu_id).decode('utf-8')
 client = MQTTClient(mcu_name, mqtt_host, user=mqtt_username, password=mqtt_password)
 client.connect()
 
-
 def checkwifi():
     while not sta_if.isconnected():
         time.sleep_ms(500)
@@ -36,16 +35,25 @@ def is_mqtt_connected():
 
 
 def main():
-    sensors.setup_push_button()
+    #sensors.setup_pir_callback()
     while True:
         checkwifi()
         try:
             is_mqtt_connected()
-            #client.publish(b"home/bedroom/propane", sensors.propane())
-            #client.publish(b"home/bedroom/methane", sensors.methane())
+            now = time.time()
+
+            # Do the every second stuff
+            sensors.pir()
+
+            # Do the 10 second stuff
+            if now % 10:
+                pass
+                #client.publish(b"home/bedroom/propane", sensors.propane())
+                #client.publish(b"home/bedroom/methane", sensors.methane())
+
         except:
             print("Caught some exception...")
-        time.sleep_ms(10000)
+        time.sleep_ms(1000)
 
 
 if __name__ == '__main__':
