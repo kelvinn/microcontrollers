@@ -15,8 +15,14 @@ while not sta_if.isconnected():
     time.sleep_ms(500)
     print(".")
 
+upip.install('micropython-umqtt.simple')
+upip.install('micropython-umqtt.robust')
+
+
 print("Installing umqtt.simple")
 upip.install('micropython-umqtt.simple')
 
 print("Installing umqtt.robust")
 upip.install('micropython-umqtt.robust')
+
+print("Done with upip. Proceeding to main program.")

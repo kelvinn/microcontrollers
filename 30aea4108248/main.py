@@ -19,6 +19,7 @@ mcu_name = ubinascii.hexlify(mcu_id).decode('utf-8')
 client = MQTTClient(mcu_name, mqtt_host, user=mqtt_username, password=mqtt_password)
 client.connect()
 
+
 def checkwifi():
     while not sta_if.isconnected():
         time.sleep_ms(500)
@@ -30,30 +31,41 @@ def is_mqtt_connected():
     try:
         client.ping()
     except OSError:
-        client.connect()
-        time.sleep(5)
+        print("Couldn't contact MQTT... trying again.")
+        client.reconnect()
 
 
 def main():
     #sensors.setup_pir_callback()
+    noise_measurements = []
     while True:
-        checkwifi()
+
         try:
-            is_mqtt_connected()
+
             now = time.time()
 
             # Do the every second stuff
-            sensors.pir()
+            #sensors.pir()
+            noise = sensors.noise()
+            noise_measurements.append(noise)
 
-            # Do the 10 second stuff
-            if now % 10:
-                pass
-                #client.publish(b"home/bedroom/propane", sensors.propane())
-                #client.publish(b"home/bedroom/methane", sensors.methane())
+            # Do the 10 second stuff, which for me includes publishing mqtt messages
+            if now % 10 == 0:
 
-        except:
-            print("Caught some exception...")
-        time.sleep_ms(1000)
+                noise_avg = sum(noise_measurements) / len(noise_measurements)
+
+                # First check if wifi and MQTT is up
+                checkwifi()
+                is_mqtt_connected()
+
+                # Now publish stats
+                client.publish(b"home/kitchen/noise", str(noise_avg))
+
+                # Reset
+                noise_measurements = []
+
+        except BaseException as error:
+            print('An exception occurred: {}'.format(error))
 
 
 if __name__ == '__main__':
