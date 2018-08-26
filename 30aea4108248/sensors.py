@@ -2,10 +2,18 @@ import time
 from machine import Pin
 from machine import ADC
 import utime as time
+import sds011
 
 # Set init value
 last_interrupt = 0
 
+
+def pm():
+    pm25, pm10, packet_status = sds011.read()
+    return pm25, pm10, packet_status
+
+
+"""
 
 def noise():
 
@@ -33,7 +41,6 @@ def noise():
     #reading = str(sum(measurements) / len(measurements))
     return reading
 
-"""
 
 
 # The PIR Sensor

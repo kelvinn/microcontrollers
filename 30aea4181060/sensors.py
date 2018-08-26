@@ -4,6 +4,7 @@ from machine import ADC
 from dht import DHT11
 import onewire
 import ds18x20
+import sds011
 
 
 def temp_and_hum():
@@ -33,6 +34,11 @@ def light():
     reading = str(adc.read())
     print("light: %s" % reading)
     return reading
+
+
+def pm():
+    pm25, pm10, packet_status = sds011.read()
+    return pm25, pm10, packet_status
 
 
 def aqi():

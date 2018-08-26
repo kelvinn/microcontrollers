@@ -46,20 +46,25 @@ def main():
 
             # Do the every second stuff
             #sensors.pir()
-            noise = sensors.noise()
-            noise_measurements.append(noise)
+            #noise = sensors.noise()
+            #noise_measurements.append(noise)
 
             # Do the 10 second stuff, which for me includes publishing mqtt messages
             if now % 10 == 0:
 
-                noise_avg = sum(noise_measurements) / len(noise_measurements)
+                #noise_avg = sum(noise_measurements) / len(noise_measurements)
 
                 # First check if wifi and MQTT is up
                 checkwifi()
                 is_mqtt_connected()
 
+                pm25, pm10, packet_status = sensors.pm()
+                client.publish(b"home/kitchen/pm25", str(pm25))
+                client.publish(b"home/kitchen/pm10", str(pm10))
+                client.publish(b"home/kitchen/packet_status", str(packet_status))
+
                 # Now publish stats
-                client.publish(b"home/kitchen/noise", str(noise_avg))
+                #client.publish(b"home/kitchen/noise", str(noise_avg))
 
                 # Reset
                 noise_measurements = []
