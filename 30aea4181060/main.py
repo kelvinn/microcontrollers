@@ -3,7 +3,7 @@ from umqtt.robust import MQTTClient
 import network
 import utime as time
 import ubinascii
-from machine import Pin, unique_id
+from machine import Pin, unique_id, RTC, DEEPSLEEP, reset_cause, DEEPSLEEP_RESET
 import sensors
 from config import config
 
@@ -17,6 +17,13 @@ mcu_id = unique_id()
 mcu_name = ubinascii.hexlify(mcu_id).decode('utf-8')
 
 client = MQTTClient(mcu_name, mqtt_host, user=mqtt_username, password=mqtt_password)
+
+# Input pin D2 on ESP32
+INPUTPIN = 26
+
+# Check if the device woke from a deep sleep
+if reset_cause() == DEEPSLEEP_RESET:
+    print('woke from a deep sleep')
 
 
 def is_wifi_connected():
@@ -37,6 +44,16 @@ def is_mqtt_connected():
         return False
     else:
         return True
+
+
+def callback(pin):
+    is_wifi_connected()
+    is_mqtt_connected()
+    client.publish(b"home/kitchen/pir", "ON")
+
+
+p33 = Pin(33, Pin.IN, Pin.PULL_UP)
+p33.irq(trigger=Pin.IRQ_FALLING, handler=callback)
 
 
 def main():

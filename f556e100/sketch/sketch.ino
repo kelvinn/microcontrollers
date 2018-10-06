@@ -4,26 +4,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-
-
-/* DHT Pro Shield - Simple
- *
- * Example testing sketch for various DHT humidity/temperature sensors
- * Written by ladyada, public domain
- *
- * Depends on Adafruit DHT Arduino library
- * https://github.com/adafruit/DHT-sensor-library
- */
 #include "configuration.h" // This is the configuration file with passwords and stuff
-
 
 #define DHTPIN D7     // what pin we're connected to
 #define CLIENT_ID "f556e100"
 
-// Uncomment whatever type you're using!
-//#define DHTTYPE DHT11   // DHT 11
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
 
 // Initialize the Ethernet client object
 WiFiClient espClient;

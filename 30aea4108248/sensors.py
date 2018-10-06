@@ -40,7 +40,8 @@ def noise():
 
     #reading = str(sum(measurements) / len(measurements))
     return reading
-
+    
+"""
 
 
 # The PIR Sensor
@@ -51,18 +52,17 @@ def pir():
     return reading
 
 
-def callback(pin):
+def callback(client, pin):
     global last_interrupt
     now = time.time()
     print(now)
     if now > last_interrupt + 5:
-        print("Interrupt has occurred")
+        print("pir: on")
+        client.publish(b"home/kitchen/pir", "ON")
         last_interrupt = now
 
 
-def setup_pir_callback():
-    button = Pin(19, Pin.IN)
-    button.irq(trigger=Pin.IRQ_RISING, handler=callback)
-    
-"""
-
+def setup_pir_callback(client):
+    print("Setup PIR sensor")
+    p33 = Pin(33, Pin.IN, Pin.PULL_UP)
+    p33.irq(trigger=Pin.IRQ_FALLING, handler=callback(client))
