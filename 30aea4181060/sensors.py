@@ -10,8 +10,8 @@ import sds011
 def temp_and_hum():
     data = DHT11(Pin(16))
     data.measure()
-    temp = str(data.temperature())
-    hum = str(data.humidity())
+    temp = round(data.temperature(), 1)
+    hum = round(data.humidity(), 1)
     print("dht11: %s, %s" % (temp, hum))
     return temp, hum
 
@@ -22,7 +22,7 @@ def temperature():
     sensors = ds.scan()
     ds.convert_temp()
     time.sleep_ms(750)
-    reading = str(ds.read_temp(sensors[0]))
+    reading = round(ds.read_temp(sensors[0]), 1)
     print("onewire: %s" % reading)
     return reading
 
@@ -31,20 +31,20 @@ def light():
     pin = Pin(33)
     adc = ADC(pin)
     adc.atten(ADC.ATTN_11DB)
-    reading = str(adc.read())
+    reading = round(adc.read())
     print("light: %s" % reading)
     return reading
 
 
 def pm():
     pm25, pm10, packet_status = sds011.read()
-    return pm25, pm10, packet_status
+    return round(pm25, 2), round(pm10, 2), str(packet_status)
 
 
 def aqi():
     pin = Pin(34)
     adc = ADC(pin)
     adc.atten(ADC.ATTN_11DB)
-    reading = str(adc.read())
+    reading = round(adc.read())
     print("aqi: %s" % reading)
     return reading

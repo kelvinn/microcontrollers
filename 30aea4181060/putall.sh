@@ -15,3 +15,6 @@ ampy -d 2 -p /dev/tty.SLAB_USBtoUART put sensors.py
 
 echo "Uploading SDS011"
 ampy -d 2 -p /dev/tty.SLAB_USBtoUART put sds011.py
+
+echo "Uploading Hassnode"
+ampy -d 2 -p /dev/tty.SLAB_USBtoUART put hassnode.py
