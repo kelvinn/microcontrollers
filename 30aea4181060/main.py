@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from umqtt.robust import MQTTClient
+from umqtt.simple import MQTTClient
 import network
 import utime as time
 import ubinascii
@@ -40,13 +40,13 @@ def is_mqtt_connected():
         client.ping()
     except (OSError, AttributeError):
         print("Could not connect to MQTT... trying again.")
-        client.reconnect()
+        client.connect()
         return False
     else:
         return True
 
 
-def callback(pin):
+def callback():
     is_wifi_connected()
     is_mqtt_connected()
     client.publish(b"home/kitchen/pir", "ON")
@@ -54,6 +54,11 @@ def callback(pin):
 
 p33 = Pin(33, Pin.IN, Pin.PULL_UP)
 p33.irq(trigger=Pin.IRQ_FALLING, handler=callback)
+
+
+def publish_to_mqtt(topic, value):
+    if is_wifi_connected and is_mqtt_connected():
+        client.publish(b"%s" % topic, value)
 
 
 def main():
@@ -73,18 +78,16 @@ def main():
                 # Check if WiFi and MQTT work
                 if is_wifi_connected and is_mqtt_connected():
 
+                    # Publish Particulate Matter stats
                     pm25, pm10, packet_status = sensors.pm()
-                    client.publish(b"home/kitchen/pm25", str(pm25))
-                    client.publish(b"home/kitchen/pm10", str(pm10))
-                    client.publish(b"home/kitchen/packet_status", str(packet_status))
+                    publish_to_mqtt("home/kitchen/pm25", str(pm25))
+                    publish_to_mqtt("home/kitchen/pm10", str(pm10))
+                    publish_to_mqtt("home/kitchen/packet_status", str(packet_status))
 
-                    # Now publish stats
-                    client.publish(b"home/kitchen/light", sensors.light())
-                    client.publish(b"home/kitchen/onewire", sensors.temperature())
-                    client.publish(b"home/kitchen/aqi", sensors.aqi())
-                    #temperature, humidity = sensors.temp_and_hum()
-                    #client.publish(b"home/kitchen/temperature", temperature)
-                    #client.publish(b"home/kitchen/humidity", humidity)
+                    # Publish other stats
+                    publish_to_mqtt("home/kitchen/light", sensors.light())
+                    publish_to_mqtt("home/kitchen/onewire", sensors.temperature())
+                    publish_to_mqtt("home/kitchen/aqi", sensors.aqi())
 
         except BaseException as error:
             print('An exception occurred: {}'.format(error))
