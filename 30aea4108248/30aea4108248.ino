@@ -1,3 +1,4 @@
+
 /*
 ESP32 located in my kitchen with various sensors.
 Reporting back to MQTT and Home Assistant
@@ -8,15 +9,14 @@ Reporting back to MQTT and Home Assistant
 #include <DHT_U.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <elapsedMillis.h>
 
 #include "configuration.h" // This is the configuration file with passwords and stuff
 
-#define DHTPIN 16     // what pin we're connected to
 #define CLIENT_ID "30aea4108248"
-#define AQIPIN 34
 
 // Uncomment whatever type you're using!
-#define DHTTYPE DHT11   // DHT 11
+//#define DHTTYPE DHT11   // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302)
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
 
@@ -26,20 +26,32 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 long lastMsg = 0;
-char msg_t[50];
+
 char msg[50];
 char topic[50];
-char msg_h[50];
-char msg_aqi[50];
+char char_light[10];
+
 int value = 0;
+elapsedMillis timeSinceCreated;
+elapsedMillis timeSinceRead;
 
 uint64_t chipid; 
 
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
+unsigned int thirtySecInterval = 30000;
+unsigned int tenSecInterval = 10000;
 const unsigned long period = 30000;  //the value is a number of milliseconds
 
-DHT dht(DHTPIN, DHTTYPE);
+struct values {
+   char temperature[10];
+   char humidity[10];
+};
+
+struct pm_values {
+   char pm25[10];
+   char pm10[10];
+};
 
 void setup() {
    
@@ -51,7 +63,7 @@ void setup() {
 
   setup_wifi();
   client.setServer(mqtt_server, 1883);
-  dht.begin();
+  initSensors();
 }
 
 void setup_wifi() {
@@ -76,17 +88,27 @@ void setup_wifi() {
 }
 
 void createHassDevices() {
+  client.loop();
+  Serial.println("Creating HASS nodes...");
+  
+  char const *aqi_config[] = { "homeassistant/sensor/kitchen/aqi/config", "{\"name\": \"Kitchen Air Quality\", \"unit_of_measurement\": \"V\" }"};
+  client.publish(aqi_config[0], aqi_config[1]);
 
-  char const *temperature_config[] = { "homeassistant/sensor/temperature/config", "{\"name\": \"Test Temperature\"}"};
+  char const *temperature_config[] = { "homeassistant/sensor/kitchen/onewire/config", "{\"name\": \"Kitchen Temperature\", \"unit_of_measurement\": \"°C\" }"};
   client.publish(temperature_config[0], temperature_config[1]);
 
-  char const *humidity_config[] = { "homeassistant/sensor/humidity/config", "{\"name\": \"Test Humidity\"}"};
-  client.publish(humidity_config[0], humidity_config[1]);
+  char const *light_config[] = { "homeassistant/sensor/kitchen/light/config", "{\"name\": \"Kitchen Light\", \"unit_of_measurement\": \"V - Light\" }"};
+  client.publish(light_config[0], light_config[1]);
 
-  //char topic[50] = "homeassistant/sensor/living/temperature/config";
-  //char msg[25] = "{\"name\": \"th\"}";
-  Serial.println("Creating HASS node");
+  char const *pm25_config[] = { "homeassistant/sensor/kitchen/pm25/config", "{\"name\": \"Kitchen PM 2.5\", \"unit_of_measurement\": \"µg/m3\" }"};
+  client.publish(pm25_config[0], pm25_config[1]);
 
+  char const *pm10_config[] = { "homeassistant/sensor/kitchen/pm10/config", "{\"name\": \"Kitchen PM 10\", \"unit_of_measurement\": \"µg/m3\" }"};
+  client.publish(pm10_config[0], pm10_config[1]);
+
+  //char const *pm_status_config[] = { "homeassistant/binary_sensor/kitchen/packet_status/config", "{\"name\": \"Kitchen PM Status\", \"unit_of_measurement\": \"µg/m3\", \"device_class\": \"problem\",   }"};
+  //client.publish(pm_status_config[0], pm_status_config[1]);
+  
 }
 
 void reconnect() {
@@ -107,83 +129,47 @@ void reconnect() {
   }
 }
 
-struct values {
-   float temperature;
-   float humidity;
-};
 
 void loop() {
-  // Wait a few seconds between measurements.
-  delay(10000);
-  //run_temp_hum_dht11();
-  //int a, int b = get_temp_hum_dht11();
 
-  struct values theValues;
-  theValues = get_temp_hum_dht11();
-  Serial.println(theValues.temperature);
-  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
-  {
+  // Create HASS nodes
+	if (timeSinceCreated > thirtySecInterval) 
+	{				
     createHassDevices();
-    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
-  }
-  //run_aqi();
-
-}
+		timeSinceCreated = 0;
+	}
 
 
-void run_aqi() {
-
-    int aqi = analogRead(AQIPIN);
-    
-    Serial.print("AQI: ");
-    Serial.println(aqi);
-    if (aqi > 0) {
-      if (!client.connected()) {
-        reconnect();
-      }
-      client.loop();
-      dtostrf(aqi,7, 3, msg_aqi);
-      client.publish("home/kitchen/aqi", msg_aqi);
-    }
-}
-
-
-
-
-
-struct values get_temp_hum_dht11() {
-    struct values temp_hum;
-
-    // Reading temperature or humidity takes about 250 milliseconds!
-    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    float h = dht.readHumidity();
-    // Read temperature as Celsius (the default)
-    float t = dht.readTemperature();
-
-    // Check if any reads failed and exit early (to try again).
-    if (isnan(h) || isnan(t))  {
-        Serial.println("Failed to read from DHT sensor!");
-        temp_hum.temperature = 0.0;
-        temp_hum.humidity = 0.0;
-        return temp_hum;
+	if (timeSinceRead > tenSecInterval) 
+	{				
+    if (!client.connected()) {
+      reconnect();
     }
     
-    temp_hum.temperature = t;
-    temp_hum.humidity = h;
-    
-    Serial.print("Sending to MQTT...");
-    Serial.print("Humidity: ");
-    Serial.print(h);
-    Serial.print(" %\t");
-    Serial.print("Temperature: ");
-    Serial.print(t);
-    Serial.println(" *C ");
+    //struct values tempHumValues;
+    //tempHumValues = get_temp_hum_dht11();
 
-    dtostrf(t,7, 3, msg_t);
-    dtostrf(h,7, 3, msg_h);
-    
-    //client.publish("homeassistant/sensor/temperature/state", msg_t);
-    //client.publish("homeassistant/sensor/humidity/state", msg_h);
-    return temp_hum;
+    // Publish to MQTT
+    //client.publish("homeassistant/sensor/kitchen/temperature/state", tempHumValues.temperature);
+    //client.publish("homeassistant/sensor/kitchen/humidity/state", tempHumValues.humidity);
+
+    char* aqi = get_aqi();
+    client.publish("homeassistant/sensor/kitchen/aqi/state", aqi);
+
+    char* light = get_light();
+    client.publish("homeassistant/sensor/kitchen/light/state", light);
+
+    char* temperature = get_temperature();
+    client.publish("homeassistant/sensor/kitchen/temperature/state", temperature);
+
+    struct pm_values tempPMValues;
+    tempPMValues = get_pm();
+
+    // Publish to MQTT
+    client.publish("homeassistant/sensor/kitchen/pm25/state", tempPMValues.pm25);
+    client.publish("homeassistant/sensor/kitchen/pm10/state", tempPMValues.pm10);
+		timeSinceRead = 0;
+	}
+
+  client.loop();
 }
