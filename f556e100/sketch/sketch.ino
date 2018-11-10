@@ -70,6 +70,12 @@ void reconnect() {
   }
 }
 
+void createHassDevices() {
+  string topic = "homeassistant/sensor/test123/config";
+  string msg = '{"name": "test123"}';
+  client.publish(topic, msg);
+}
+
 void loop() {
   // Wait a few seconds between measurements.
   delay(10000);

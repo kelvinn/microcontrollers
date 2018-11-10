@@ -20,6 +20,13 @@ MCU_NAME = ubinascii.hexlify(MCU_ID).decode('utf-8')
 
 mqtt = MQTTClient(MCU_NAME, mqtt_host, user=mqtt_username, password=mqtt_password)
 
+aqi_sensor = None
+temperature_sensor = None
+light_sensor = None
+pm25_sensor = None
+pm10_sensor = None
+pm_status_sensor = None
+
 # Check if the device woke from a deep sleep
 if reset_cause() == DEEPSLEEP_RESET:
     print('woke from a deep sleep')
@@ -39,8 +46,12 @@ def is_mqtt_connected():
         mqtt.ping()
     except (OSError, AttributeError):
         print("Could not connect to MQTT... trying again.")
-        mqtt.connect()
-        return False
+        try:
+            mqtt.connect()
+            return True
+        except (OSError, AttributeError):
+            print('Still unable to communicate with MQTT...')
+            return False
     else:
         return True
 
@@ -56,24 +67,33 @@ def publish_to_mqtt(topic, value):
         mqtt.publish(b"%s" % topic, value)
 
 
+def create_hass_devices():
+    global aqi_sensor, temperature_sensor, light_sensor, pm25_sensor, pm10_sensor, pm_status_sensor
+
+    # Try again to ensure MQTT is up before progressing
+    if is_mqtt_connected():
+
+        # Give auto discover a try
+        aqi_sensor = hassnode.Sensor(mqtt, "Kitchen Air Quality", "V", "aqi")
+        temperature_sensor = hassnode.Sensor(mqtt, "Kitchen Temperature", "°C", "onewire")
+        light_sensor = hassnode.Sensor(mqtt, "Kitchen Light", "V - Light", "light")
+        pm25_sensor = hassnode.Sensor(mqtt, "Kitchen PM 2.5", "µg/m3", "pm25")
+        pm10_sensor = hassnode.Sensor(mqtt, "Kitchen PM 10", "µg/m3", "pm10")
+        pm_status_sensor = hassnode.BinarySensor(mqtt, "Kitchen PM Status", "problem",  "packet_status")
+
+
 def main():
+
     # Try to ensure MQTT is up before progressing
     is_mqtt_connected()
-
-    # Give auto discover a try
-    aqi_sensor = hassnode.Sensor(mqtt, "Kitchen Air Quality", "V", "aqi")
-    temperature_sensor = hassnode.Sensor(mqtt, "Kitchen Temperature", "°C", "onewire")
-    light_sensor = hassnode.Sensor(mqtt, "Kitchen Light", "V - Light", "light")
-    pm25_sensor = hassnode.Sensor(mqtt, "Kitchen PM 2.5", "µg/m3", "pm25")
-    pm10_sensor = hassnode.Sensor(mqtt, "Kitchen PM 10", "µg/m3", "pm10")
-    pm_status_sensor = hassnode.BinarySensor(mqtt, "Kitchen PM Status", "problem",  "packet_status")
+    create_hass_devices()
 
     while True:
+        now = time.time()
+        if now % 60 == 0:
+            create_hass_devices()
 
         try:
-
-            # probably need to change to ms
-            now = time.time()
 
             # Do the 10 second stuff, which for me includes publishing mqtt messages
             if now % 10 == 0:
