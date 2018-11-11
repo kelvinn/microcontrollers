@@ -104,7 +104,7 @@ char* get_temperature() {
 struct pm_values get_pm() {
   struct pm_values pm;
   turnon();
-  delay(2000);
+  delay(2000); // Wait 2s for sensor to turn on
 
   ProcessSerialData();
 
@@ -112,24 +112,9 @@ struct pm_values get_pm() {
   //Pm10 = Pm10 / (1.0 + 0.81559 * pow((h / 100.0), 5.83411));
 
   turnoff();
-  /* 
-  PmResult pm = sds.readPm();
-  if (pm.isOk()) {
-    Serial.print("PM2.5 = ");
-    Serial.print(pm.pm25);
-    Serial.print(", PM10 = ");
-    Serial.println(pm.pm10);
-
-    // if you want to just print the measured values, you can use toString() method as well
-    Serial.println(pm.toString());
-  } else {
-    Serial.print("Could not read values from sensor, reason: ");
-    Serial.println(pm.statusToString());
-  }
-  */
   
-  dtostrf(Pm25, 7, 1, msg_pm25);
-  dtostrf(Pm10, 7, 1, msg_pm10);
+  dtostrf(Pm25, 7, 0, msg_pm25);
+  dtostrf(Pm10, 7, 0, msg_pm10);
 
   strncpy(pm.pm25, msg_pm25, 10);
   strncpy(pm.pm10, msg_pm10, 10);
@@ -145,10 +130,10 @@ struct pm_values get_pm() {
 }
 
 void turnoff() {
-  Serial2.flush();
-  for (uint8_t j = 0; j < 19; j++) Serial2.write(SLEEPCMD[j]);
+  SDS011.flush();
+  for (uint8_t j = 0; j < 19; j++) SDS011.write(SLEEPCMD[j]);
 }
 
 void turnon() {
-  Serial2.write(0x01);
+  SDS011.write(0x01);
 }

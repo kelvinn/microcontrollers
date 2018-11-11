@@ -160,7 +160,7 @@ void loop() {
     client.publish("homeassistant/sensor/kitchen/light/state", light);
 
     char* temperature = get_temperature();
-    client.publish("homeassistant/sensor/kitchen/temperature/state", temperature);
+    client.publish("homeassistant/sensor/kitchen/onewire/state", temperature);
 
     struct pm_values tempPMValues;
     tempPMValues = get_pm();
