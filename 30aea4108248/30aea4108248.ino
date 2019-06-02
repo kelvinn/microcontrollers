@@ -94,8 +94,8 @@ void createHassDevices() {
   char const *aqi_config[] = { "homeassistant/sensor/kitchen/aqi/config", "{\"name\": \"Kitchen Air Quality\", \"unit_of_measurement\": \"V\" }"};
   client.publish(aqi_config[0], aqi_config[1]);
 
-  char const *temperature_config[] = { "homeassistant/sensor/kitchen/onewire/config", "{\"name\": \"Kitchen Temperature\", \"unit_of_measurement\": \"°C\" }"};
-  client.publish(temperature_config[0], temperature_config[1]);
+  //char const *temperature_config[] = { "homeassistant/sensor/kitchen/onewire/config", "{\"name\": \"Kitchen Temperature\", \"unit_of_measurement\": \"°C\" }"};
+  //client.publish(temperature_config[0], temperature_config[1]);
 
   char const *light_config[] = { "homeassistant/sensor/kitchen/light/config", "{\"name\": \"Kitchen Light\", \"unit_of_measurement\": \"V - Light\" }"};
   client.publish(light_config[0], light_config[1]);
@@ -160,7 +160,8 @@ void loop() {
     client.publish("homeassistant/sensor/kitchen/light/state", light);
 
     char* temperature = get_temperature();
-    client.publish("homeassistant/sensor/kitchen/onewire/state", temperature);
+    // Disable, as switching to Xiaomi wireless sensor
+    //client.publish("homeassistant/sensor/kitchen/onewire/state", temperature);
 
     struct pm_values tempPMValues;
     tempPMValues = get_pm();
