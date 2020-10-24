@@ -10,6 +10,8 @@ Reporting back to MQTT and Home Assistant
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <elapsedMillis.h>
+//#include "RunningAverage.h"
+
 
 #include "configuration.h" // This is the configuration file with passwords and stuff
 
@@ -39,9 +41,12 @@ uint64_t chipid;
 
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
+unsigned int sixtySecInterval = 60000;
 unsigned int thirtySecInterval = 30000;
 unsigned int tenSecInterval = 10000;
 const unsigned long period = 30000;  //the value is a number of milliseconds
+//
+//RunningAverage aqiStats(10); 
 
 struct values {
    char temperature[10];
@@ -56,6 +61,7 @@ struct pm_values {
 void setup() {
    
   Serial.begin(115200);
+  
   chipid=ESP.getEfuseMac();//The chip ID is essentially its MAC address(length: 6 bytes).
   Serial.printf("ESP32 Chip ID = %04X",(uint16_t)(chipid>>32));//print High 2 bytes
   Serial.printf("%08X\n",(uint32_t)chipid);//print Low 4bytes.
@@ -91,19 +97,19 @@ void createHassDevices() {
   client.loop();
   Serial.println("Creating HASS nodes...");
   
-  char const *aqi_config[] = { "homeassistant/sensor/kitchen/aqi/config", "{\"name\": \"Kitchen Air Quality\", \"unit_of_measurement\": \"V\" }"};
+  char const *aqi_config[] = { "homeassistant/sensor/kitchen/aqi/config", "{\"state_topic\": \"homeassistant/sensor/kitchen/aqi/config\", \"name\": \"Kitchen Air Quality\", \"unit_of_measurement\": \"V\" }"};
   client.publish(aqi_config[0], aqi_config[1]);
 
   //char const *temperature_config[] = { "homeassistant/sensor/kitchen/onewire/config", "{\"name\": \"Kitchen Temperature\", \"unit_of_measurement\": \"°C\" }"};
   //client.publish(temperature_config[0], temperature_config[1]);
 
-  char const *light_config[] = { "homeassistant/sensor/kitchen/light/config", "{\"name\": \"Kitchen Light\", \"unit_of_measurement\": \"V - Light\" }"};
+  char const *light_config[] = { "homeassistant/sensor/kitchen/light/config", "{\"state_topic\": \"homeassistant/sensor/kitchen/light/config\", \"name\": \"Kitchen Light\", \"unit_of_measurement\": \"V - Light\" }"};
   client.publish(light_config[0], light_config[1]);
 
-  char const *pm25_config[] = { "homeassistant/sensor/kitchen/pm25/config", "{\"name\": \"Kitchen PM 2.5\", \"unit_of_measurement\": \"µg/m3\" }"};
+  char const *pm25_config[] = { "homeassistant/sensor/kitchen/pm25/config", "{\"state_topic\": \"homeassistant/sensor/kitchen/pm25/config\", \"name\": \"Kitchen PM 2.5\", \"unit_of_measurement\": \"µg/m3\" }"};
   client.publish(pm25_config[0], pm25_config[1]);
 
-  char const *pm10_config[] = { "homeassistant/sensor/kitchen/pm10/config", "{\"name\": \"Kitchen PM 10\", \"unit_of_measurement\": \"µg/m3\" }"};
+  char const *pm10_config[] = { "homeassistant/sensor/kitchen/pm10/config", "{\"state_topic\": \"homeassistant/sensor/kitchen/pm10/config\", \"name\": \"Kitchen PM 10\", \"unit_of_measurement\": \"µg/m3\" }"};
   client.publish(pm10_config[0], pm10_config[1]);
 
   //char const *pm_status_config[] = { "homeassistant/binary_sensor/kitchen/packet_status/config", "{\"name\": \"Kitchen PM Status\", \"unit_of_measurement\": \"µg/m3\", \"device_class\": \"problem\",   }"};
@@ -140,11 +146,13 @@ void loop() {
 	}
 
 
-	if (timeSinceRead > tenSecInterval) 
+	if (timeSinceRead > sixtySecInterval) 
 	{				
     if (!client.connected()) {
       reconnect();
     }
+
+//    aqiStats.clear();
     
     //struct values tempHumValues;
     //tempHumValues = get_temp_hum_dht11();
@@ -154,8 +162,10 @@ void loop() {
     //client.publish("homeassistant/sensor/kitchen/humidity/state", tempHumValues.humidity);
 
     char* aqi = get_aqi();
-    client.publish("homeassistant/sensor/kitchen/aqi/state", aqi);
-
+    if (atoi(aqi) > 0 and atoi(aqi) < 200){
+      client.publish("homeassistant/sensor/kitchen/aqi/state", aqi);
+    }
+    
     char* light = get_light();
     client.publish("homeassistant/sensor/kitchen/light/state", light);
 
@@ -167,8 +177,12 @@ void loop() {
     tempPMValues = get_pm();
 
     // Publish to MQTT
-    client.publish("homeassistant/sensor/kitchen/pm25/state", tempPMValues.pm25);
-    client.publish("homeassistant/sensor/kitchen/pm10/state", tempPMValues.pm10);
+    if (atoi(tempPMValues.pm25) > 0 and atoi(tempPMValues.pm25) < 999) {
+      client.publish("homeassistant/sensor/kitchen/pm25/state", tempPMValues.pm25);
+    }
+    if (atoi(tempPMValues.pm10) > 0 and atoi(tempPMValues.pm10) < 1999) {
+      client.publish("homeassistant/sensor/kitchen/pm10/state", tempPMValues.pm10);
+    }
 		timeSinceRead = 0;
 	}
 

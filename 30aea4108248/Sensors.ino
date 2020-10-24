@@ -108,10 +108,10 @@ struct pm_values get_pm() {
 
   ProcessSerialData();
 
-  //Pm25 = Pm25 / (1.0 + 0.48756 * pow((h / 100.0), 8.60068));
-  //Pm10 = Pm10 / (1.0 + 0.81559 * pow((h / 100.0), 5.83411));
-
   turnoff();
+
+//  Pm25 = Pm25 / (1.0 + 0.48756 * pow((h / 100.0), 8.60068));
+//  Pm10 = Pm10 / (1.0 + 0.81559 * pow((h / 100.0), 5.83411));
   
   dtostrf(Pm25, 7, 0, msg_pm25);
   dtostrf(Pm10, 7, 0, msg_pm10);
